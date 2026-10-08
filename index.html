@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="DEADLINE: SHADOW PROTOCOL - 3D Tactical Sniper and Stealth Covert Action Game. Complete campaign, reconnaissance drone, living target AI, and branching narrative.">
+    <meta name="keywords" content="sniper game, stealth, 3D web game, threejs, covert operative, tactical action, webgl">
+    <title>DEADLINE: SHADOW PROTOCOL | 3D Tactical Sniper Stealth</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 3D Canvas Viewport -->
+    <div id="canvas-container"></div>
+
+    <!-- Atmospheric Overlays -->
+    <div class="screen-vignette"></div>
+    <div class="scanlines"></div>
+    <div id="photo-flash-overlay"></div>
+    <div id="game-notification">NOTIFICATION</div>
+
+    <!-- Top Utility Bar -->
+    <div id="top-utility-bar">
+        <div class="util-item" id="btn-sound-toggle" onclick="toggleAudio()">
+            <span id="sound-icon">🔊</span>
+            <span id="sound-text">AUDIO ON</span>
+        </div>
+        <div class="util-item" onclick="toggleFullscreen()">
+            <span>⛶</span>
+            <span>FULLSCREEN</span>
+        </div>
+        <div class="util-item" onclick="gameManager.showArmory()">
+            <span>◈ INTEL:</span>
+            <span class="intel-pts-counter gold-text">100 PTS</span>
+        </div>
+    </div>
+
+    <!-- ==================== 1. MAIN MENU ==================== -->
+    <div id="main-menu">
+        <div class="title-container">
+            <div class="classified-tag">DIRECTIVE // CLASSIFIED EYES ONLY</div>
+            <h1 class="main-title">DEADLINE</h1>
+            <div class="sub-title">SHADOW PROTOCOL</div>
+        </div>
+
+        <div class="menu-buttons">
+            <button class="tactical-btn btn-primary" onclick="gameManager.showBriefing(0)">[ CAMPAIGN ]</button>
+            <button class="tactical-btn" onclick="openMissionSelect()">[ MISSIONS ]</button>
+            <button class="tactical-btn" onclick="gameManager.showArmory()">[ ARMORY ]</button>
+            <button class="tactical-btn" onclick="gameManager.showIntelDatabase()">[ INTEL DOSSIER ]</button>
+            <button class="tactical-btn" onclick="openControlsModal()">[ CONTROLS / GUIDE ]</button>
+        </div>
+
+        <div class="menu-footer-lore">
+            BLACK VEIL COVERT INTELLIGENCE NETWORK // VER 3.8.4 // ALL RIGHTS RESERVED
+        </div>
+    </div>
+
+    <!-- ==================== 2. MISSION BRIEFING DOSSIER ==================== -->
+    <div id="briefing-screen">
+        <div class="briefing-card" id="briefing-content">
+            <!-- Dynamically populated by gameManager.showBriefing() -->
+        </div>
+    </div>
+
+    <!-- ==================== 3. MISSION SELECT MODAL ==================== -->
+    <div id="mission-select-modal" style="display:none;" class="climax-modal-wrap">
+        <!-- Missions populated dynamically -->
+    </div>
+
+    <!-- ==================== 4. IN-GAME TACTICAL HUD ==================== -->
+    <div id="game-hud">
+        <!-- Top HUD Banner -->
+        <div class="hud-top-bar">
+            <div class="hud-contract-info">
+                <h2 id="hud-contract-title">CONTRACT 01: DOWNTOWN SKYLINE</h2>
+                <div class="hud-primary-obj" id="hud-primary-objective">Neutralize Viktor Chen</div>
+                <div style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+                    CURRENT VANTAGE: <span id="vantage-name-badge" class="gold-text">NORTH ROOFTOP</span>
+                </div>
+            </div>
+
+            <div class="hud-stealth-monitor">
+                <div class="exposure-container">
+                    <span class="exposure-title">EXPOSURE:</span>
+                    <div class="exposure-bar">
+                        <div id="exposure-fill"></div>
+                    </div>
+                    <span id="exposure-text">0%</span>
+                </div>
+                <div id="target-status-indicator" class="status-green">
+                    STATUS: UNAWARE
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Crosshair (Hipfire) -->
+        <div id="hud-center-reticle">
+            <div class="reticle-pip pip-top"></div>
+            <div class="reticle-pip pip-bottom"></div>
+            <div class="reticle-pip pip-left"></div>
+            <div class="reticle-pip pip-right"></div>
+        </div>
+
+        <!-- Bottom HUD Controls & Weapon Info -->
+        <div class="hud-bottom-bar">
+            <div class="hud-controls-hint">
+                <span><kbd>[RIGHT CLICK]</kbd> SCOPE</span>
+                <span><kbd>[SHIFT]</kbd> HOLD BREATH</span>
+                <span><kbd>[Z]</kbd> ZOOM</span>
+                <span><kbd>[T]</kbd> THERMAL</span>
+                <span><kbd>[D]</kbd> RECON DRONE</span>
+                <span><kbd>[V]</kbd> SWITCH VANTAGE</span>
+                <span><kbd>[R]</kbd> RELOAD</span>
+            </div>
+
+            <div class="hud-weapon-status">
+                <div>
+                    <div class="weapon-title">SPECTRE .338 LAPUA</div>
+                    <div id="ammo-counter">5 / 5</div>
+                </div>
+                <button class="tactical-btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="gameManager.switchVantage()">
+                    REPOSITION [V]
+                </button>
+                <button class="tactical-btn btn-primary" style="padding: 6px 12px; font-size: 0.75rem;" onclick="gameManager.startDroneMode()">
+                    DRONE [D]
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 5. SCOPE OVERLAY ==================== -->
+    <div id="scope-overlay">
+        <div class="scope-mask"></div>
+        <div class="scope-reticle-crosshair">
+            <div class="reticle-line-h"></div>
+            <div class="reticle-line-v"></div>
+            <div class="reticle-center-circle"></div>
+        </div>
+        <div class="scope-telemetry">
+            <div id="scope-zoom-text">4X MAGNIFICATION</div>
+            <div id="scope-range-text" style="font-size:0.8rem; margin-top:4px;">RNG: 142M | ELEV: 0.0 MIL</div>
+        </div>
+        <div id="thermal-badge">FLIR THERMAL [T]</div>
+        <div class="scope-breath-wrapper">
+            <span>BREATH STABILITY [SHIFT]</span>
+            <div class="breath-bar">
+                <div id="breath-meter-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 6. RECON DRONE FPV OVERLAY ==================== -->
+    <div id="drone-overlay">
+        <div class="drone-grid-hud"></div>
+        <div class="drone-top-telemetry">
+            <div>
+                <span class="gold-text">[DRONE RECONNAISSANCE MODE]</span>
+                <span id="drone-altitude-text" style="margin-left: 15px;">ALT: 35m</span>
+                <span id="drone-dist-text" style="margin-left: 15px;">RNG: 52m</span>
+            </div>
+            <div class="battery-display">
+                <span>BATTERY:</span>
+                <div class="battery-bar">
+                    <div id="drone-battery-fill"></div>
+                </div>
+                <span id="drone-battery-text">100%</span>
+            </div>
+        </div>
+
+        <div class="drone-reticle"></div>
+
+        <div id="drone-scan-box">
+            <!-- Dynamically populated when scanning -->
+        </div>
+
+        <div style="position: absolute; bottom: 30px; left: 40px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--cyan-primary); background: rgba(0,0,0,0.7); padding: 8px 16px; border: 1px solid var(--panel-border);">
+            <span>CONTROLS: <kbd>[W/A/S/D]</kbd> THRUST | <kbd>[SPACE/C]</kbd> ASCEND/DESCEND | <kbd>[CLICK / E]</kbd> BIOMETRIC SCAN | <kbd>[F]</kbd> TAKE PHOTO | <kbd>[D / ESC]</kbd> RECALL</span>
+        </div>
+    </div>
+
+    <!-- ==================== 7. MISSION RESULTS / DEBRIEF ==================== -->
+    <div id="mission-results-screen">
+        <div id="mission-results-card">
+            <!-- Dynamically populated by gameManager.showMissionResults() -->
+        </div>
+    </div>
+
+    <!-- ==================== 8. ARMORY & UPGRADES SCREEN ==================== -->
+    <div id="armory-screen">
+        <div class="panel-header">
+            <div>
+                <h1>BLACK VEIL ARMORY</h1>
+                <p style="color:var(--text-muted); font-size:0.95rem;">UPGRADE WEAPONS & TACTICAL OPERATIVE EQUIPMENT WITH INTEL POINTS</p>
+            </div>
+            <div style="display:flex; gap:20px; align-items:center;">
+                <div style="font-family:var(--font-mono); font-size:1.1rem;">
+                    AVAILABLE INTEL: <strong class="intel-pts-counter gold-text">100 PTS</strong>
+                </div>
+                <button class="tactical-btn" onclick="gameManager.returnToMenu()">← RETURN</button>
+            </div>
+        </div>
+        <div class="armory-grid" id="armory-items-list">
+            <!-- Dynamically populated by gameManager.showArmory() -->
+        </div>
+    </div>
+
+    <!-- ==================== 9. INTEL DOSSIER SCREEN ==================== -->
+    <div id="intel-screen">
+        <div class="panel-header">
+            <div>
+                <h1>CLASSIFIED INTEL ARCHIVE</h1>
+                <p style="color:var(--text-muted); font-size:0.95rem;">DECRYPTED FIELD DOSSIERS AND PROJECT OBLIVION TRANSCRIPTS</p>
+            </div>
+            <button class="tactical-btn" onclick="gameManager.returnToMenu()">← RETURN</button>
+        </div>
+        <div class="intel-list" id="intel-files-list">
+            <!-- Dynamically populated by gameManager.showIntelDatabase() -->
+        </div>
+    </div>
+
+    <!-- ==================== 10. CLIMAX & 4 ENDINGS MODAL ==================== -->
+    <div id="climax-modal">
+        <div class="climax-container">
+            <h1>CONTRACT 06: THE LAST CONTRACT</h1>
+            <div class="climax-subtitle">DIRECTOR KAELEN SANCTUM CONFRONTATION // CHOOSE THE RESOLUTION</div>
+            <div class="climax-choices-grid" id="climax-choices">
+                <!-- Dynamically populated with 4 Endings -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 11. EPILOGUE MODAL ==================== -->
+    <div id="epilogue-modal">
+        <!-- Rendered when ending chosen -->
+    </div>
+
+    <!-- ==================== 12. CONTROLS MODAL ==================== -->
+    <div id="controls-modal" style="display:none;" class="climax-container">
+        <div class="briefing-card" style="margin: 40px auto; max-width: 700px;">
+            <div class="briefing-header">
+                <h2>TACTICAL FIELD MANUAL // CONTROLS</h2>
+            </div>
+            <div class="schedule-table" style="font-size: 0.95rem; line-height: 1.8;">
+                <div class="schedule-row"><span class="sched-loc">MOUSE</span><span class="sched-desc">Aim sniper rifle / Drone camera</span></div>
+                <div class="schedule-row"><span class="sched-loc">RIGHT CLICK</span><span class="sched-desc">Toggle High-Magnification Scope view</span></div>
+                <div class="schedule-row"><span class="sched-loc">LEFT CLICK</span><span class="sched-desc">Fire Sniper Rifle / Drone scan target</span></div>
+                <div class="schedule-row"><span class="sched-loc">SHIFT</span><span class="sched-desc">Hold Breath (Steady Reticle, reduces sway)</span></div>
+                <div class="schedule-row"><span class="sched-loc">Z</span><span class="sched-desc">Cycle Scope Zoom (2X / 4X / 8X / 16X)</span></div>
+                <div class="schedule-row"><span class="sched-loc">T</span><span class="sched-desc">Toggle FLIR Thermal Vision (Requires Upgrade)</span></div>
+                <div class="schedule-row"><span class="sched-loc">D</span><span class="sched-desc">Deploy / Recall Reconnaissance Drone</span></div>
+                <div class="schedule-row"><span class="sched-loc">V / Q</span><span class="sched-desc">Switch Vantage Point Position</span></div>
+                <div class="schedule-row"><span class="sched-loc">W / A / S / D</span><span class="sched-desc">Fly Drone (Forward / Left / Back / Right)</span></div>
+                <div class="schedule-row"><span class="sched-loc">SPACE / C</span><span class="sched-desc">Drone Ascend / Descend</span></div>
+                <div class="schedule-row"><span class="sched-loc">E</span><span class="sched-desc">Drone Biometric Target Scanner</span></div>
+                <div class="schedule-row"><span class="sched-loc">F</span><span class="sched-desc">Take Evidence Surveillance Photo</span></div>
+                <div class="schedule-row"><span class="sched-loc">R</span><span class="sched-desc">Reload Magazine</span></div>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="tactical-btn btn-primary" onclick="closeControlsModal()">CLOSE MANUAL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js Library -->
+    <script src="lib/three.min.js"></script>
+    <script>
+        // Fallback to CDN if local Three.js failed to load
+        if (typeof THREE === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+        }
+    </script>
+
+    <!-- Game Engine Scripts -->
+    <script src="js/audio.js"></script>
+    <script src="js/weapons.js"></script>
+    <script src="js/missions.js"></script>
+    <script src="js/environment.js"></script>
+    <script src="js/npc.js"></script>
+    <script src="js/drone.js"></script>
+    <script src="js/stealth.js"></script>
+    <script src="js/game.js"></script>
+
+    <script>
+        function toggleAudio() {
+            if (!window.soundEngine.initialized) window.soundEngine.init();
+            const muted = window.soundEngine.toggleMute();
+            document.getElementById('sound-icon').innerText = muted ? '🔇' : '🔊';
+            document.getElementById('sound-text').innerText = muted ? 'MUTED' : 'AUDIO ON';
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        function openMissionSelect() {
+            const modal = document.getElementById('briefing-screen');
+            const content = document.getElementById('briefing-content');
+            content.innerHTML = `
+                <div class="briefing-header">
+                    <h2>OPERATIONAL CONTRACT SELECTION</h2>
+                    <p style="color:var(--text-muted); font-size:0.9rem;">SELECT AN ASSIGNMENT FROM THE BLACK VEIL NETWORK</p>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:15px; margin:25px 0;">
+                    ${MISSIONS_DATA.map((m, idx) => `
+                        <div class="armory-card" onclick="gameManager.showBriefing(${idx})" style="cursor:pointer;">
+                            <div>
+                                <span class="dossier-tag">CONTRACT ${m.number}</span>
+                                <h3 style="font-family:var(--font-heading); color:#fff; margin:6px 0;">${m.codename}</h3>
+                                <div style="font-family:var(--font-mono); font-size:0.85rem; color:var(--cyan-primary);">${m.title}</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">TARGET: ${m.targetName}</div>
+                                <div style="font-size:0.8rem; color:var(--text-muted);">THREAT: ${m.threatLevel} | WEATHER: ${m.weather}</div>
+                            </div>
+                            <button class="tactical-btn" style="margin-top:10px;">REVIEW DOSSIER →</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div style="text-align:right;">
+                    <button class="tactical-btn" onclick="gameManager.returnToMenu()">← BACK TO TITLE</button>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function openControlsModal() {
+            document.getElementById('controls-modal').style.display = 'block';
+            document.getElementById('main-menu').style.display = 'none';
+        }
+
+        function closeControlsModal() {
+            document.getElementById('controls-modal').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
